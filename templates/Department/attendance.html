@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance - {{ department }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='Department/dept_style.css') }}">
+    <style>
+        .attendance-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .employee-list {
+            margin-top: 1rem;
+        }
+
+        .employee-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .employee-item input {
+            margin-right: 12px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.85);
+            color: #222;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: transform 0.2s;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            transform: scale(1.03);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="{{url_for('static',filename='oil_logo.jpeg')}}" alt="logo">
+            <h2 class="welcome">Attendance - {{ department }}</h2>
+        </div>
+        <div class="logout"><a href="{{ url_for('logout') }}" class="logout-link">Logout</a></div>
+    </div>
+
+    <div class="attendance-container">
+        <form method="POST" action="{{ url_for('mark_attendance') }}">
+            <div class="form-group">
+                <label for="training_name">Training Name</label>
+                <input type="text" id="training_name" name="training_name" required>
+            </div>
+
+            <h3>Select Present Employees:</h3>
+            <div class="employee-list">
+                {% for employee in employees %}
+                <div class="employee-item">
+                    <input type="checkbox" id="emp_{{ employee.id }}" name="present" value="{{ employee.id }}">
+                    <label for="emp_{{ employee.id }}">{{ employee.name }} (ID: {{ employee.id }})</label>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="submit">Submit Attendance</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='Department/dept_style.css') }}">
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <img src="{{url_for('static',filename='oil_logo.jpeg')}}" alt="logo">
+      <h2 class="welcome">Welcome Admin</h2>
+    </div>
+    <div class="logout"><a class="logout-link">Logout</a></div>
+  </div>
+
+  <div class="card-grid">
+    <a href="{{ url_for('view_employees') }}" class="card1-link">
+      <div class="card1">Employee</div>
+    </a>
+    <a href="{{ url_for('dept_att')}}" class="card2-link">
+      <div class="card2">Attendance</div>
+    </a>
+<a href="{{ url_for('dept_training_content') }}" class="card3-link">
+    <div class="card3">Set Training Contents</div>
+</a>
+    <div class="card4">Report</div>
+  </div>
+</body>
+</html>

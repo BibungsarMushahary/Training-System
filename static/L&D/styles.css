@@ -1,0 +1,108 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-image: url('/static/background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 0;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  padding-left: 2rem;
+}
+
+.logo img {
+  height: 70px;
+  width: 70px;
+  margin-right: 1rem;
+}
+
+.logout {
+  font-size: 0.9rem;
+  color: white;
+  cursor: pointer;
+  padding-right: 2rem;
+}
+.logout-link{
+ font-size: 1.4rem;
+}
+.welcome {
+  font-size: 40px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  justify-items: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 700px;
+  margin: 0 auto;
+  text-size: 30px;
+}
+
+
+
+.card1, .card2, .card3, .card4 {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 18px;
+  padding: 2rem;
+  color: #222;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: transform 0.2s;
+  width: 250px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+}
+
+.card3-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.card2-link {
+  text-decoration: none;
+}
+.card3:hover {
+  cursor: pointer;
+  background-color: #f0f0f0;
+}
+
+.card1:hover,
+.card2:hover,
+.card3:hover,
+.card4:hover {
+  transform: scale(1.03);
+}
