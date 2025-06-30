@@ -14,6 +14,23 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'xml','xlsx'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+def format_datetime(value, format='%Y-%m-%d %H:%M'):
+    if value is None:
+        return ''
+    if isinstance(value, str):
+        try:
+            value = datetime.strptime(value, '%Y-%m-%d %H:%M')
+        except ValueError:
+            return value
+    return value.strftime(format)
+
+app.jinja_env.filters['datetimeformat'] = format_datetime
+
+# Add datetime to all templates
+@app.context_processor
+def inject_datetime():
+    return {'datetime': datetime}
+
 credentials = {
     'ld_admin': {'username': 'ldadmin', 'password': 'ld123'},
     'is_admin': {'username': 'isadmin', 'password': 'is123', 'department': 'IS'},
@@ -35,11 +52,11 @@ departments_employees = {
     'Finance': []
 }
 training_records = {}
+attendance_records = {}
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
 
 @app.route('/')
 def role_selection():
@@ -182,12 +199,11 @@ def dept_training_content():
         training_data = request.form.to_dict()
         assigned_employees = request.form.getlist('assigned_employees')
 
-
         if not training_data.get('training_name'):
             flash('Training name is required', 'error')
             return redirect(url_for('dept_training_content'))
 
-
+        # Save to XML
         root = ET.Element("TrainingContents")
         training_entry = ET.SubElement(root, "Training")
 
@@ -208,20 +224,22 @@ def dept_training_content():
         tree = ET.ElementTree(root)
         tree.write(filepath)
 
+        # ✅ Save full training data to records
         record_id = str(len(training_records) + 1)
-        training_records[record_id] = {
-            'id': record_id,
-            'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
-            'department': department,
-            'training_name': training_data.get('training_name', 'Unnamed Training'),
-            'assigned_employees': [e['name'] for e in departments_employees[department]
-                                 if e['id'] in assigned_employees],
-            'xml_content': ET.tostring(root, encoding='unicode')
-        }
+        record_data = training_data.copy()
+        record_data['id'] = record_id
+        record_data['date'] = datetime.now().strftime('%Y-%m-%d %H:%M')
+        record_data['department'] = department
+        record_data['assigned_employees'] = [
+            e['name'] for e in departments_employees[department] if e['id'] in assigned_employees
+        ]
+        record_data['xml_content'] = ET.tostring(root, encoding='unicode')
+        training_records[record_id] = record_data
 
         flash('Training content saved successfully!', 'success')
         return redirect(url_for('dept_training_content'))
 
+    # GET Request
     field_names = session.get('training_fields', [])
     existing_values = {}
     employees = departments_employees.get(department, [])
@@ -231,13 +249,11 @@ def dept_training_content():
             tree = ET.parse(filepath)
             root = tree.getroot()
             if len(root) > 0:
-                existing_values = {elem.tag: elem.text for elem in root[0]
-                                 if elem.tag != 'AssignedEmployees'}
+                existing_values = {elem.tag: elem.text for elem in root[0] if elem.tag != 'AssignedEmployees'}
         except ET.ParseError:
             pass
 
-    dept_records = [r for r in training_records.values()
-                   if r['department'] == department]
+    dept_records = [r for r in training_records.values() if r['department'] == department]
 
     return render_template('Department/training_content.html',
                          department=department,
@@ -246,6 +262,55 @@ def dept_training_content():
                          employees=employees,
                          training_records=dept_records,
                          datetime=datetime)
+
+
+@app.route('/edit_training/<record_id>', methods=['GET', 'POST'])
+def edit_training(record_id):
+    if 'department' not in session:
+        return redirect(url_for('logout'))
+
+    department = session['department']
+    field_names = session.get('training_fields', [])
+    employees = departments_employees.get(department, [])
+
+    if record_id not in training_records:
+        flash('Training record not found', 'error')
+        return redirect(url_for('dept_training_content'))
+
+    record = training_records[record_id]
+
+    if request.method == 'POST':
+        updated_data = request.form.to_dict()
+        assigned_employees = request.form.getlist('assigned_employees')
+
+        # Update fields
+        for field in field_names:
+            record[field] = updated_data.get(field, '')
+
+        # Also update training_name separately
+        record['training_name'] = updated_data.get('training_name', 'Unnamed')
+
+        # Update assigned_employees with IDs
+        record['assigned_employees'] = assigned_employees
+
+        flash('Training record updated successfully!', 'success')
+        return redirect(url_for('dept_training_content'))
+
+    return render_template('Department/edit_training.html',
+                           department=department,
+                           field_names=field_names,
+                           record=record,
+                           employees=employees)
+
+
+@app.route('/delete_training/<record_id>')
+def delete_training(record_id):
+    if record_id in training_records:
+        del training_records[record_id]
+        flash('Training record deleted successfully', 'success')
+    else:
+        flash('Training record not found', 'error')
+    return redirect(url_for('dept_training_content'))
 
 
 @app.route('/export_training/<record_id>')
@@ -332,7 +397,13 @@ def lnddepartments():
 def dept_att():
     department = session.get('department')
     employees = departments_employees.get(department, [])
-    return render_template('Department/attendance.html', employees=employees, department=department)
+    # Change this line to use the global training_records dictionary
+    return render_template('Department/attendance.html',
+                         department=department,
+                         departments_employees=departments_employees,
+                         employees=employees,
+                         training_records=training_records,
+                         attendance_records=attendance_records)
 
 
 @app.route('/add_employee', methods=['GET', 'POST'])
@@ -342,12 +413,14 @@ def add_employee():
         name = request.form.get('name')
         email = request.form.get('email')
         employee_id = request.form.get('employee_id')
+        designation = request.form.get('designation')
 
         if department and name and email and employee_id:
             new_employee = {
                 'id': employee_id,
                 'name': name,
                 'email': email,
+                'designation': designation,
                 'department': department
             }
             departments_employees[department].append(new_employee)
@@ -365,19 +438,158 @@ def view_employees():
 
 @app.route('/mark_attendance', methods=['POST'])
 def mark_attendance():
-    department = session.get('department')
-    if request.method == 'POST':
-        training_name = request.form.get('training_name')
-        present_employee_ids = request.form.getlist('present')
+    if 'department' not in session:
+        return redirect(url_for('logout'))
 
-        # In a real app, you would save this to a database
-        print(f"Training: {training_name}")
-        print(f"Present employees: {present_employee_ids}")
+    department = session['department']
+    training_id = request.form.get('training_name')
+    attendance_date = request.form.get('attendance_date')
+    present_employee_ids = request.form.getlist('present')
 
-        return redirect(url_for('dashboard'))
+    # Find the training record
+    training_record = training_records.get(training_id)
+    if not training_record:
+        flash('Training record not found', 'error')
+        return redirect(url_for('attendance'))
 
-    return redirect(url_for('dept_att'))
+    # Get employee details
+    participants = []
+    for emp_id in present_employee_ids:
+        employee = next((e for e in departments_employees[department] if e['id'] == emp_id), None)
+        if employee:
+            participants.append({
+                'id': employee['id'],
+                'name': employee['name'],
+                'email': employee['email'],
+                'designation': employee.get('designation', 'N/A')
+            })
 
+    # Save attendance record
+    record_id = str(len(attendance_records) + 1)
+    attendance_records[record_id] = {
+        'id': record_id,
+        'training_name': training_record['training_name'],
+        'date': attendance_date,
+        'department': department,
+        'participants': participants
+    }
+
+    flash('Attendance saved successfully!', 'success')
+    return redirect(url_for('attendance'))
+
+@app.route('/attendance', methods=['GET'])
+def attendance():
+    if 'department' not in session:
+        return redirect(url_for('logout'))
+
+    department = session['department']
+    employees = departments_employees.get(department, [])
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    # Filter training records for the current department
+    dept_training_records = {
+        k: v for k, v in training_records.items()
+        if v.get('department') == department
+    }
+
+    # Filter attendance records for the current department
+    dept_attendance_records = {
+        k: v for k, v in attendance_records.items()
+        if v.get('department') == department
+    }
+
+    return render_template('Department/attendance.html',
+                         department=department,
+                         departments_employees=departments_employees,
+                         employees=employees,
+                         training_records=dept_training_records,
+                         attendance_records=dept_attendance_records,
+                         current_date=today)
+
+@app.route('/export_attendance_period')
+def export_attendance_period():
+    department = request.args.get('department')
+    month = request.args.get('month')
+    year = request.args.get('year')
+
+    filtered_records = []
+    for record in attendance_records.values():
+        if record['department'] == department:
+            record_date = datetime.strptime(record['date'], '%Y-%m-%d %H:%M')
+            if (not month or record_date.month == int(month)) and \
+                    (not year or record_date.year == int(year)):
+                filtered_records.append(record)
+
+    # Create XML response
+    root = ET.Element("AttendanceRecords")
+    for record in filtered_records:
+        record_elem = ET.SubElement(root, "AttendanceRecord")
+        ET.SubElement(record_elem, "TrainingName").text = record['training_name']
+        ET.SubElement(record_elem, "Date").text = record['date']
+        employees_elem = ET.SubElement(record_elem, "Participants")
+        for emp in record['participants']:
+            emp_elem = ET.SubElement(employees_elem, "Employee")
+            ET.SubElement(emp_elem, "Name").text = emp['name']
+            ET.SubElement(emp_elem, "ID").text = emp['id']
+            ET.SubElement(emp_elem, "Designation").text = emp.get('designation', 'N/A')
+
+    response = make_response(ET.tostring(root, encoding='unicode'))
+    response.headers['Content-Type'] = 'application/xml'
+    filename = f"attendance_records_{department}"
+    if year:
+        filename += f"_{year}"
+    if month:
+        filename += f"_{month}"
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}.xml'
+    return response
+
+@app.route('/export_all_attendance')
+def export_all_attendance():
+    department = request.args.get('department')
+    filtered_records = [r for r in attendance_records.values() if r['department'] == department]
+
+    root = ET.Element("AttendanceRecords")
+    for record in filtered_records:
+        record_elem = ET.SubElement(root, "AttendanceRecord")
+        ET.SubElement(record_elem, "TrainingName").text = record['training_name']
+        ET.SubElement(record_elem, "Date").text = record['date']
+        employees_elem = ET.SubElement(record_elem, "Participants")
+        for emp in record['participants']:
+            emp_elem = ET.SubElement(employees_elem, "Employee")
+            ET.SubElement(emp_elem, "Name").text = emp['name']
+            ET.SubElement(emp_elem, "ID").text = emp['id']
+            ET.SubElement(emp_elem, "Designation").text = emp.get('designation', 'N/A')
+
+    response = make_response(ET.tostring(root, encoding='unicode'))
+    response.headers['Content-Type'] = 'application/xml'
+    response.headers['Content-Disposition'] = f'attachment; filename=all_attendance_records_{department}.xml'
+    return response
+
+
+@app.route('/export_attendance_record/<record_id>')
+def export_attendance_record(record_id):
+    if record_id not in attendance_records:
+        flash('Record not found')
+        return redirect(url_for('attendance'))
+
+    record = attendance_records[record_id]
+
+    root = ET.Element("AttendanceRecord")
+    ET.SubElement(root, "TrainingName").text = record['training_name']
+    ET.SubElement(root, "Date").text = record['date']
+    ET.SubElement(root, "Department").text = record['department']
+
+    participants = ET.SubElement(root, "Participants")
+    for emp in record['participants']:
+        emp_elem = ET.SubElement(participants, "Employee")
+        ET.SubElement(emp_elem, "Name").text = emp['name']
+        ET.SubElement(emp_elem, "ID").text = emp['id']
+        ET.SubElement(emp_elem, "Designation").text = emp['designation']
+
+    response = make_response(ET.tostring(root, encoding='unicode'))
+    response.headers['Content-Type'] = 'application/xml'
+    response.headers['Content-Disposition'] = f'attachment; filename=attendance_record_{record_id}.xml'
+    return response
 
 @app.route('/logout')
 def logout():

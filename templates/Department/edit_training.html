@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Training - {{ department }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='Department/dept_style.css') }}">
+    <style>
+        body {
+            padding: 2rem;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        .form-container {
+            max-width: 800px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(6px);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        label {
+            font-weight: bold;
+            margin-top: 1rem;
+            display: block;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 0.3rem;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-group {
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-group label {
+            font-weight: normal;
+            display: inline-block;
+            margin-left: 6px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        .submit-btn {
+            background: rgba(76, 175, 80, 0.85);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 1.5rem;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover {
+            background: rgba(76, 175, 80, 1);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 1rem;
+            text-decoration: none;
+            color: lightblue;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2 class="section-title">Edit Training Record</h2>
+
+        <form method="POST">
+            <label for="training_name">Training Name:</label>
+            <input type="text" id="training_name" name="training_name" value="{{ record.get('training_name', '') }}" required>
+
+            {% for field in field_names %}
+                {% if field != 'training_name' %}
+                    <label for="{{ field }}">{{ field|replace('_', ' ')|title }}:</label>
+                    <input type="text" id="{{ field }}" name="{{ field }}" value="{{ record.get(field, '') }}">
+                {% endif %}
+            {% endfor %}
+
+            <label>Assigned Employees:</label>
+            <div class="checkbox-group">
+                {% for employee in employees %}
+                    <div>
+                        <input type="checkbox" id="emp_{{ employee.id }}" name="assigned_employees" value="{{ employee.id }}"
+                            {% if employee.id in record.assigned_employees %}checked{% endif %}>
+                        <label for="emp_{{ employee.id }}">{{ employee.name }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="submit-btn">Update Training</button>
+            <br>
+            <a href="{{ url_for('dept_training_content') }}" class="back-link">← Back to Training Content</a>
+        </form>
+    </div>
+</body>
+</html>
