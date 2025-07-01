@@ -205,13 +205,13 @@
             <div class="form-group">
                 <label for="training_name">Select Training Program</label>
                 <select id="training_name" name="training_name" required>
-                    <option value="">-- Select Training --</option>
-                    {% for record_id, record in training_records.items() if record.department == department %}
-                        <option value="{{ record_id }}">{{ record.training_name }} ({{ record.date|datetimeformat }})</option>
-                    {% else %}
-                        <option disabled>No trainings available</option>
-                    {% endfor %}
-                </select>
+    <option value="">-- Select Training --</option>
+    {% for record_id, record in training_records.items() %}
+        <option value="{{ record_id }}">{{ record.training_name }} ({{ record.date|datetimeformat }})</option>
+    {% else %}
+        <option disabled>No trainings available</option>
+    {% endfor %}
+</select>
             </div>
 
             <div class="form-group">

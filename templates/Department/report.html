@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ department }} Department Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='Department/dept_style.css') }}">
+    <style>
+        .report-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 2rem auto;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 1rem;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .report-table th, .report-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .report-table th {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .export-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .export-select {
+            padding: 8px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .export-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .export-btn:hover {
+            background: #45a049;
+        }
+
+        .participant-badge {
+            display: inline-block;
+            background: rgba(33, 150, 243, 0.2);
+            padding: 2px 10px;
+            border-radius: 12px;
+            margin: 2px 4px;
+            font-size: 0.85rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo img {
+            height: 50px;
+        }
+
+        .logout .logout-link {
+            color: #fff;
+            background: #f44336;
+            padding: 0.5rem 1rem;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+        .logout .logout-link:hover {
+            background: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='oil_logo.jpeg') }}" alt="logo">
+            <h2 class="welcome">{{ department }} Department Report</h2>
+        </div>
+        <div class="logout"><a href="{{ url_for('logout') }}" class="logout-link">Logout</a></div>
+    </div>
+
+    <div class="report-container">
+        <div class="report-header">
+            <h1>{{ department }} Department Training Report</h1>
+            <p>Overview of training activities and attendance</p>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_trainings }}</div>
+                <div class="stat-label">Total Trainings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_attendance_records }}</div>
+                <div class="stat-label">Attendance Sessions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.unique_employees_trained }}</div>
+                <div class="stat-label">Unique Employees Trained</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_employees }}</div>
+                <div class="stat-label">Total Employees</div>
+            </div>
+        </div>
+
+        <div class="export-options">
+            <select class="export-select" id="exportMonth">
+                <option value="">Select Month</option>
+                {% for month in range(1, 13) %}
+                    <option value="{{ month }}">{{ month }}</option>
+                {% endfor %}
+            </select>
+            <select class="export-select" id="exportYear">
+                <option value="">Select Year</option>
+                {% set current_year = datetime.now().year %}
+                {% for year in range(current_year - 5, current_year + 1) %}
+                    <option value="{{ year }}">{{ year }}</option>
+                {% endfor %}
+            </select>
+            <button class="export-btn" onclick="exportReportByPeriod()">Export Selected Period</button>
+            <button class="export-btn" onclick="exportAllReport()">Export All Data</button>
+        </div>
+
+        <h3 class="section-title">Recent Training Programs</h3>
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Training Name</th>
+                    <th>Date</th>
+                    <th>Assigned Employees</th>
+                    <th>Attendance Sessions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for training in trainings[-5:] %}
+                <tr>
+                    <td>{{ training.training_name }}</td>
+                    <td>{{ training.date|datetimeformat }}</td>
+                    <td>
+                        {% set emp_ids = training.assigned_employees if training.assigned_employees is iterable else [] %}
+                        {% for emp_id in emp_ids %}
+                            {% set employee = departments_employees[department]|selectattr('id', 'equalto', emp_id)|first %}
+                            <span class="participant-badge">{{ employee.name if employee else emp_id }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% set sessions = attendance_records.values()|selectattr('training_name', 'equalto', training.training_name)|list %}
+                        {{ sessions|length }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3 class="section-title">Recent Attendance Records</h3>
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Training Name</th>
+                    <th>Date</th>
+                    <th>Participants</th>
+                    <th>Attendance Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set sorted_attendance = attendance_records.values()|sort(attribute='date', reverse=true) %}
+                {% for record in sorted_attendance[:5] %}
+                <tr>
+                    <td>{{ record.training_name }}</td>
+                    <td>{{ record.date|datetimeformat }}</td>
+                    <td>
+                        {% for participant in record.participants %}
+                            <span class="participant-badge">{{ participant.name }}</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% set training = training_records.values()|selectattr('training_name', 'equalto', record.training_name)|first %}
+                        {% if training and training.assigned_employees and training.assigned_employees|length > 0 %}
+                            {{ "%.0f"|format((record.participants|length / training.assigned_employees|length) * 100) }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function exportReportByPeriod() {
+            const month = document.getElementById('exportMonth').value;
+            const year = document.getElementById('exportYear').value;
+
+            if (!month && !year) {
+                alert('Please select at least a month or year');
+                return;
+            }
+
+            window.location.href = `/export_report?month=${month}&year=${year}&department={{ department }}`;
+        }
+
+        function exportAllReport() {
+            window.location.href = `/export_report?department={{ department }}`;
+        }
+    </script>
+</body>
+</html>

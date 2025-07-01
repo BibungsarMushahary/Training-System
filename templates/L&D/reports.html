@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Department Reports</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='L&D/styles.css') }}">
+    <style>
+        .report-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .department-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        select {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.85);
+            font-size: 1rem;
+        }
+
+        .export-options {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .export-btn:hover {
+            background: #45a049;
+        }
+
+        .period-selectors {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <img src="{{url_for('static',filename='oil_logo.jpeg')}}" alt="logo">
+            <h2 class="welcome">Department Reports</h2>
+        </div>
+        <div class="logout"><a href="{{ url_for('logout') }}" class="logout-link">Logout</a></div>
+    </div>
+
+    <div class="report-container">
+        <div class="report-header">
+            <h1>View Department Reports</h1>
+            <p>Select a department to view or export training reports</p>
+        </div>
+
+        <div class="department-selector">
+            <label for="department">Select Department:</label>
+            <select id="department">
+                <option value="">-- Select Department --</option>
+                {% for dept in departments %}
+                    <option value="{{ dept }}">{{ dept }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="period-selectors">
+                <div>
+                    <label for="month">Month:</label>
+                    <select id="month">
+                        <option value="">All Months</option>
+                        {% for month in range(1, 13) %}
+                            <option value="{{ month }}">{{ month }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="year">Year:</label>
+                    <select id="year">
+                        <option value="">All Years</option>
+                        {% set current_year = datetime.now().year %}
+                        {% for year in range(current_year - 5, current_year + 1) %}
+                            <option value="{{ year }}">{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="export-options">
+                <button class="export-btn" onclick="viewReport()">View Report</button>
+                <button class="export-btn" onclick="exportReport()">Export Report</button>
+                <button class="export-btn" onclick="exportAllData()">Export All Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function viewReport() {
+            const department = document.getElementById('department').value;
+            const month = document.getElementById('month').value;
+            const year = document.getElementById('year').value;
+
+            if (!department) {
+                alert('Please select a department');
+                return;
+            }
+
+            let url = `/department_report?department=${department}`;
+            if (month) url += `&month=${month}`;
+            if (year) url += `&year=${year}`;
+
+            window.open(url, '_blank');
+        }
+
+        function exportReport() {
+            const department = document.getElementById('department').value;
+            const month = document.getElementById('month').value;
+            const year = document.getElementById('year').value;
+
+            if (!department) {
+                alert('Please select a department');
+                return;
+            }
+
+            let url = `/export_report?department=${department}`;
+            if (month) url += `&month=${month}`;
+            if (year) url += `&year=${year}`;
+
+            window.location.href = url;
+        }
+
+        function exportAllData() {
+            const department = document.getElementById('department').value;
+
+            if (!department) {
+                alert('Please select a department');
+                return;
+            }
+
+            window.location.href = `/export_report?department=${department}`;
+        }
+    </script>
+</body>
+</html>

@@ -39,6 +39,9 @@ body {
 }
 .logout-link{
  font-size: 1.4rem;
+  color: inherit;
+  display: block;
+  text-decoration:none;
 }
 .welcome {
   font-size: 40px;
@@ -105,4 +108,9 @@ body {
 .card3:hover,
 .card4:hover {
   transform: scale(1.03);
+}
+.card4-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }

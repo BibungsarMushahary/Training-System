@@ -11,7 +11,7 @@
       <img src="{{url_for('static',filename='oil_logo.jpeg')}}" alt="logo">
       <h2 class="welcome">Welcome Admin</h2>
     </div>
-    <div class="logout"><a class="logout-link">Logout</a></div>
+    <div class="logout"><a href="{{ url_for('logout') }}" class="logout-link">Logout</a></div>
   </div>
 
   <div class="card-grid">
@@ -24,7 +24,9 @@
 <a href="{{ url_for('dept_training_content') }}" class="card3-link">
     <div class="card3">Set Training Contents</div>
 </a>
+    <a href="{{ url_for('department_report') }}" class="card4-link">
     <div class="card4">Report</div>
+</a>
   </div>
 </body>
 </html>
