@@ -94,11 +94,11 @@
             <label>Assigned Employees:</label>
             <div class="checkbox-group">
                 {% for employee in employees %}
-                    <div>
-                        <input type="checkbox" id="emp_{{ employee.id }}" name="assigned_employees" value="{{ employee.id }}"
-                            {% if employee.id in record.assigned_employees %}checked{% endif %}>
-                        <label for="emp_{{ employee.id }}">{{ employee.name }}</label>
-                    </div>
+                    <div class="employee-item">
+    <input type="checkbox" id="emp_{{ employee.id }}" name="assigned_employees"
+           value="{{ employee.id }}" {% if employee.id|string in assigned_employees %}checked{% endif %}>
+    <label for="emp_{{ employee.id }}">{{ employee.name }}</label>
+</div>
                 {% endfor %}
             </div>
 

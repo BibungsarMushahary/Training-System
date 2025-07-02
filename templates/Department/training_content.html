@@ -265,19 +265,26 @@
                     <tbody>
                         {% for record in training_records %}
                         <tr>
-                            <td>{{ record.get('training_name', 'Unnamed') }}</td>
+                            <td>{{ record.training_name }}</td>
+                            {% set record_data = record.training_data if record.training_data is string else record.training_data %}
+                            {% set record_data = record_data|fromjson %}
                             {% for field in field_names %}
-                                <td>{{ record.get(field, 'N/A') }}</td>
+                                <td>{{ record_data.get(field, 'N/A') }}</td>
                             {% endfor %}
-                            <td>{{ record.assigned_employees|join(', ') }}</td>
                             <td>
-  <div style="display: flex; flex-direction: column; gap: 6px;">
-    <a href="{{ url_for('edit_training', record_id=record.id) }}" class="export-btn">Edit</a>
-    <a href="{{ url_for('delete_training', record_id=record.id) }}" class="export-btn delete-btn">Delete</a>
-    <a href="{{ url_for('export_training', record_id=record.id) }}" class="export-btn">Export</a>
-  </div>
-</td>
-
+                                {% set assigned_employees = [] %}
+                                {% for emp in employees if emp.id|string in record_data.get('assigned_employees', []) %}
+                                    {% set _ = assigned_employees.append(emp.name) %}
+                                {% endfor %}
+                                {{ assigned_employees|join(', ') }}
+                            </td>
+                            <td>
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    <a href="{{ url_for('edit_training', record_id=record.id) }}" class="export-btn">Edit</a>
+                                    <a href="{{ url_for('delete_training', record_id=record.id) }}" class="export-btn delete-btn">Delete</a>
+                                    <a href="{{ url_for('export_training', record_id=record.id) }}" class="export-btn">Export</a>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -301,8 +308,30 @@
         }
 
         function exportAll() {
-            window.location.href = `/export_all?department={{ department }}`;
+            const month = document.getElementById('exportMonth').value;
+            const year = document.getElementById('exportYear').value;
+
+            window.location.href = `/export_all?department={{ department }}&month=${month}&year=${year}`;
         }
+
+
+        function updateExportButtonStates() {
+            const month = document.getElementById('exportMonth').value;
+            const year = document.getElementById('exportYear').value;
+            const hasFilters = month || year;
+
+            document.querySelectorAll('.export-period-btn').forEach(btn => {
+                btn.disabled = !hasFilters;
+            });
+        }
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateExportButtonStates();
+
+            document.getElementById('exportMonth').addEventListener('change', updateExportButtonStates);
+            document.getElementById('exportYear').addEventListener('change', updateExportButtonStates);
+        });
     </script>
 </body>
 </html>

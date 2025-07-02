@@ -13,6 +13,7 @@
             padding: 2rem;
             max-width: 1200px;
             margin: 2rem auto;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
 
         .form-group {
@@ -23,21 +24,35 @@
             display: block;
             margin-bottom: 0.5rem;
             font-size: 1.2rem;
+            color: #fff;
         }
 
         input[type="text"],
         input[type="date"],
+        input[type="datetime-local"],
         select {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
             font-size: 1rem;
             margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .employee-list {
             margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
         }
 
         .employee-item {
@@ -45,10 +60,21 @@
             align-items: center;
             padding: 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.2s;
+        }
+
+        .employee-item:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .employee-item input {
             margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .employee-item label {
+            margin-bottom: 0;
+            cursor: pointer;
         }
 
         button {
@@ -60,12 +86,13 @@
             cursor: pointer;
             font-size: 1.2rem;
             font-weight: bold;
-            transition: transform 0.2s;
+            transition: all 0.2s;
             margin-top: 1rem;
         }
 
         button:hover {
             transform: scale(1.03);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
         .form-buttons {
@@ -73,15 +100,6 @@
             justify-content: space-between;
             gap: 1rem;
             flex-wrap: wrap;
-        }
-
-        .auto-save-btn {
-            background: rgba(76, 175, 80, 0.85);
-            color: white;
-        }
-
-        .auto-save-btn:hover {
-            background: rgba(76, 175, 80, 1);
         }
 
         .manual-save-btn {
@@ -93,8 +111,20 @@
             background: rgba(33, 150, 243, 1);
         }
 
+        .auto-save-btn {
+            background: rgba(76, 175, 80, 0.85);
+            color: white;
+        }
+
+        .auto-save-btn:hover {
+            background: rgba(76, 175, 80, 1);
+        }
+
         .attendance-records {
             margin-top: 3rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 15px;
         }
 
         .attendance-table {
@@ -107,21 +137,29 @@
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
         }
 
         .attendance-table th {
             background-color: rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+        }
+
+        .attendance-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
         }
 
         .action-btn {
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.85rem;
             text-decoration: none;
             display: inline-block;
-            margin-right: 4px;
+            margin-right: 6px;
             text-align: center;
+            transition: all 0.2s;
+            border: none;
         }
 
         .export-btn {
@@ -131,6 +169,7 @@
 
         .export-btn:hover {
             background: rgba(76, 175, 80, 1);
+            transform: translateY(-1px);
         }
 
         .edit-btn {
@@ -140,6 +179,7 @@
 
         .edit-btn:hover {
             background: rgba(255, 193, 7, 1);
+            transform: translateY(-1px);
         }
 
         .delete-btn {
@@ -149,6 +189,7 @@
 
         .delete-btn:hover {
             background: rgba(220, 53, 69, 1);
+            transform: translateY(-1px);
         }
 
         .export-options {
@@ -157,13 +198,16 @@
             gap: 10px;
             margin-top: 1rem;
             margin-bottom: 1rem;
+            flex-wrap: wrap;
         }
 
         .export-select {
-            padding: 8px;
+            padding: 8px 12px;
             border-radius: 8px;
-            border: none;
-            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            min-width: 120px;
         }
 
         .export-period-btn {
@@ -174,21 +218,110 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 0.9rem;
+            transition: all 0.2s;
         }
 
         .export-period-btn:hover {
             background: rgba(76, 175, 80, 1);
+            transform: translateY(-1px);
         }
 
-        .participant-table {
-            width: 100%;
-            border-collapse: collapse;
+        .participants-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
-        .participant-table td {
+        .participant-chip {
+            background: rgba(255, 255, 255, 0.1);
             padding: 4px 8px;
-            border: none;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            white-space: nowrap;
         }
+
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+
+        @media (max-width: 768px) {
+            .attendance-container {
+                padding: 1rem;
+                margin: 1rem;
+            }
+
+            .form-buttons {
+                flex-direction: column;
+            }
+
+            .export-options {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+        }
+
+    select option {
+        background: rgba(40, 40, 40, 0.95);
+        color: #fff;
+        padding: 10px;
+    }
+
+
+    select {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") no-repeat;
+        background-position: right 12px center;
+        background-size: 16px;
+        color: #fff;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+    }
+
+
+    select::-moz-focus-inner {
+        border: 0;
+    }
+
+    select::-ms-expand {
+        display: none;
+    }
+
+    select:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.4);
+        background-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+    }
+
+    @-moz-document url-prefix() {
+        select {
+            color: #fff !important;
+            text-shadow: 0 0 0 #fff;
+        }
+    }
     </style>
 </head>
 <body>
@@ -205,13 +338,13 @@
             <div class="form-group">
                 <label for="training_name">Select Training Program</label>
                 <select id="training_name" name="training_name" required>
-    <option value="">-- Select Training --</option>
-    {% for record_id, record in training_records.items() %}
-        <option value="{{ record_id }}">{{ record.training_name }} ({{ record.date|datetimeformat }})</option>
-    {% else %}
-        <option disabled>No trainings available</option>
-    {% endfor %}
-</select>
+                    <option value="">-- Select Training --</option>
+                    {% for training in trainings %}
+                        <option value="{{ training.id }}">{{ training.training_name }}</option>
+                    {% else %}
+                        <option disabled>No trainings available</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div class="form-group">
@@ -219,17 +352,17 @@
                 <input type="datetime-local" id="attendance_date" name="attendance_date" required>
             </div>
 
-            <h3>Select Present Employees:</h3>
+            <h3 style="color: #fff; margin-bottom: 1rem;">Select Present Employees:</h3>
             <div class="employee-list">
-                {% for employee in departments_employees.get(department, []) %}
+                {% for employee in employees %}
                 <div class="employee-item">
                     <input type="checkbox" id="emp_{{ employee.id }}" name="present" value="{{ employee.id }}">
                     <label for="emp_{{ employee.id }}">
-                        {{ employee.name }} (ID: {{ employee.id }}) - {{ employee.designation or 'N/A' }}
+                        {{ employee.name }} (ID: {{ employee.employee_id }}) - {{ employee.designation or 'N/A' }}
                     </label>
                 </div>
                 {% else %}
-                <p>No employees found in this department</p>
+                <p style="color: #fff;">No employees found in this department</p>
                 {% endfor %}
             </div>
 
@@ -240,7 +373,7 @@
         </form>
 
         <div class="attendance-records">
-            <h3>Attendance Records</h3>
+            <h3 style="color: #fff; margin-bottom: 1.5rem;">Attendance Records</h3>
 
             <div class="export-options">
                 <select class="export-select" id="exportMonth">
@@ -270,30 +403,26 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for record_id, record in attendance_records.items() if record.department == department %}
+                    {% for record in attendance_records %}
                     <tr>
                         <td>{{ record.training_name }}</td>
-                        <td>{{ record.date|datetimeformat }}</td>
+                        <td>{{ record.session_date|datetimeformat }}</td>
                         <td>
-                            <table class="participant-table">
-                                {% for participant in record.participants %}
-                                <tr>
-                                    <td>{{ participant.name }}</td>
-                                    <td>{{ participant.id }}</td>
-                                    <td>{{ participant.designation }}</td>
-                                </tr>
+                            <div class="participants-list">
+                                {% for participant in record.participants.split(', ') %}
+                                <span class="participant-chip">{{ participant }}</span>
                                 {% endfor %}
-                            </table>
+                            </div>
                         </td>
                         <td>
-                            <a href="#" class="action-btn edit-btn">Edit</a>
-                            <a href="#" class="action-btn delete-btn">Delete</a>
-                            <a href="{{ url_for('export_attendance_record', record_id=record_id) }}" class="action-btn export-btn">Export</a>
+                            <button class="action-btn edit-btn">Edit</button>
+                            <button class="action-btn delete-btn">Delete</button>
+                            <a href="{{ url_for('export_attendance_record', record_id=record.record_id) }}" class="action-btn export-btn">Export</a>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" style="text-align: center;">No attendance records found</td>
+                        <td colspan="4" style="text-align: center; color: #fff;">No attendance records found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -301,7 +430,7 @@
         </div>
     </div>
 
-    <script>
+     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const now = new Date();
             const year = now.getFullYear();
@@ -311,6 +440,7 @@
             const minutes = String(now.getMinutes()).padStart(2, '0');
 
             document.getElementById('attendance_date').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            updateExportButtonStates();
         });
 
         function autoSaveAttendance() {
@@ -346,8 +476,24 @@
         }
 
         function exportAllAttendance() {
-            window.location.href = `/export_all_attendance?department={{ department }}`;
+            const month = document.getElementById('exportMonth').value;
+            const year = document.getElementById('exportYear').value;
+
+            window.location.href = `/export_all_attendance?department={{ department }}&month=${month}&year=${year}`;
         }
+
+        function updateExportButtonStates() {
+            const month = document.getElementById('exportMonth').value;
+            const year = document.getElementById('exportYear').value;
+            const hasFilters = month || year;
+
+            document.querySelectorAll('.export-period-btn').forEach(btn => {
+                btn.disabled = !hasFilters;
+            });
+        }
+
+        document.getElementById('exportMonth').addEventListener('change', updateExportButtonStates);
+        document.getElementById('exportYear').addEventListener('change', updateExportButtonStates);
     </script>
 </body>
 </html>

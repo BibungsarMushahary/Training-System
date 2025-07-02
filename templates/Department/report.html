@@ -200,24 +200,22 @@
                 </tr>
             </thead>
             <tbody>
-                {% for training in trainings[-5:] %}
-                <tr>
-                    <td>{{ training.training_name }}</td>
-                    <td>{{ training.date|datetimeformat }}</td>
-                    <td>
-                        {% set emp_ids = training.assigned_employees if training.assigned_employees is iterable else [] %}
-                        {% for emp_id in emp_ids %}
-                            {% set employee = departments_employees[department]|selectattr('id', 'equalto', emp_id)|first %}
-                            <span class="participant-badge">{{ employee.name if employee else emp_id }}</span>
-                        {% endfor %}
-                    </td>
-                    <td>
-                        {% set sessions = attendance_records.values()|selectattr('training_name', 'equalto', training.training_name)|list %}
-                        {{ sessions|length }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    {% for training in trainings %}
+    <tr>
+        <td>{{ training.training_name }}</td>
+        <td>{{ training.created_at|datetimeformat }}</td>
+        <td>
+            {% for emp in training.assigned_employees %}
+                <span class="participant-badge">{{ emp.name }}</span>
+            {% endfor %}
+        </td>
+        <td>
+            {% set sessions = attendance_records|selectattr('training_name', 'equalto', training.training_name)|list|length %}
+            {{ sessions }}
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
         </table>
 
         <h3 class="section-title">Recent Attendance Records</h3>
@@ -231,31 +229,30 @@
                 </tr>
             </thead>
             <tbody>
-                {% set sorted_attendance = attendance_records.values()|sort(attribute='date', reverse=true) %}
-                {% for record in sorted_attendance[:5] %}
-                <tr>
-                    <td>{{ record.training_name }}</td>
-                    <td>{{ record.date|datetimeformat }}</td>
-                    <td>
-                        {% for participant in record.participants %}
-                            <span class="participant-badge">{{ participant.name }}</span>
-                        {% endfor %}
-                    </td>
-                    <td>
-                        {% set training = training_records.values()|selectattr('training_name', 'equalto', record.training_name)|first %}
-                        {% if training and training.assigned_employees and training.assigned_employees|length > 0 %}
-                            {{ "%.0f"|format((record.participants|length / training.assigned_employees|length) * 100) }}%
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    {% for record in attendance_records %}
+    <tr>
+        <td>{{ record.training_name }}</td>
+        <td>{{ record.session_date|datetimeformat }}</td>
+        <td>
+            {% for participant in record.participants %}
+                <span class="participant-badge">{{ participant.name }}</span>
+            {% endfor %}
+        </td>
+        <td>
+            {% set training = trainings|selectattr('training_name', 'equalto', record.training_name)|first %}
+            {% if training and training.assigned_employees and training.assigned_employees|length > 0 %}
+                {{ "%.0f"|format((record.participants|length / training.assigned_employees|length) * 100) }}%
+            {% else %}
+                N/A
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
         </table>
     </div>
 
-    <script>
+   <script>
         function exportReportByPeriod() {
             const month = document.getElementById('exportMonth').value;
             const year = document.getElementById('exportYear').value;
@@ -269,8 +266,30 @@
         }
 
         function exportAllReport() {
-            window.location.href = `/export_report?department={{ department }}`;
+            const month = document.getElementById('exportMonth').value;
+            const year = document.getElementById('exportYear').value;
+
+            window.location.href = `/export_report?department={{ department }}&month=${month}&year=${year}`;
         }
+
+        function updateExportButtonStates() {
+            const month = document.getElementById('exportMonth').value;
+            const year = document.getElementById('exportYear').value;
+            const hasFilters = month || year;
+
+            document.querySelectorAll('.export-btn').forEach(btn => {
+                if (btn.textContent.includes('Selected Period')) {
+                    btn.disabled = !hasFilters;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateExportButtonStates();
+
+            document.getElementById('exportMonth').addEventListener('change', updateExportButtonStates);
+            document.getElementById('exportYear').addEventListener('change', updateExportButtonStates);
+        });
     </script>
 </body>
 </html>
