@@ -273,7 +273,6 @@ def dept_training_content():
         (department_id,)
     ).fetchall()
 
-    # Convert Row objects to dictionaries
     trainings_list = [dict(training) for training in trainings]
     employees_list = [dict(employee) for employee in employees]
     format_data_dict = dict(format_data) if format_data else None
@@ -300,7 +299,6 @@ def edit_training(record_id):
     conn = get_db_connection()
 
     try:
-        # Get training record
         training = conn.execute(
             'SELECT * FROM training_programs WHERE id = ? AND department_id = ?',
             (record_id, session['department_id'])
@@ -312,7 +310,6 @@ def edit_training(record_id):
 
         training_data = json.loads(training['training_data'])
 
-        # Get format fields
         format_data = conn.execute(
             'SELECT field_names FROM training_formats WHERE department_id = ? ORDER BY created_at DESC LIMIT 1',
             (session['department_id'],)
@@ -320,13 +317,10 @@ def edit_training(record_id):
 
         field_names = json.loads(format_data['field_names']) if format_data else []
 
-        # Get employees
         employees = conn.execute(
             'SELECT * FROM employees WHERE department_id = ?',
             (session['department_id'],)
         ).fetchall()
-
-        # Get currently assigned employees
         assigned_employees = conn.execute(
             'SELECT employee_id FROM training_assignments WHERE training_id = ?',
             (record_id,)
@@ -338,12 +332,10 @@ def edit_training(record_id):
             updated_data = request.form.to_dict()
             new_assigned = request.form.getlist('assigned_employees')
 
-            # Preserve any existing fields not in the form
             for field in training_data:
                 if field not in updated_data and field != 'assigned_employees':
                     updated_data[field] = training_data[field]
 
-            # Update training record
             conn.execute(
                 'UPDATE training_programs SET training_name = ?, training_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
                 (updated_data.get('training_name', training['training_name']),
@@ -351,7 +343,6 @@ def edit_training(record_id):
                  record_id
                  ))
 
-            # Update assigned employees
             conn.execute('DELETE FROM training_assignments WHERE training_id = ?', (record_id,))
             for emp_id in new_assigned:
                 conn.execute(
@@ -384,7 +375,6 @@ def delete_training(record_id):
     conn = get_db_connection()
 
     try:
-        # First check if the training belongs to the user's department
         training = conn.execute(
             'SELECT id FROM training_programs WHERE id = ? AND department_id = ?',
             (record_id, session['department_id'])
@@ -394,7 +384,6 @@ def delete_training(record_id):
             flash('Training record not found or not authorized', 'error')
             return redirect(url_for('dept_training_content'))
 
-        # Delete the training
         conn.execute('DELETE FROM training_programs WHERE id = ?', (record_id,))
         conn.commit()
         flash('Training record deleted successfully', 'success')
@@ -411,7 +400,6 @@ def delete_training(record_id):
 def export_training(record_id):
     conn = get_db_connection()
 
-    # Get training record
     training = conn.execute(
         'SELECT * FROM training_programs WHERE id = ?',
         (record_id,)
@@ -422,7 +410,6 @@ def export_training(record_id):
         flash('Training record not found', 'error')
         return redirect(url_for('dept_training_content'))
 
-    # Get assigned employees
     employees = conn.execute('''
         SELECT e.name, e.employee_id, e.designation
         FROM training_assignments ta
@@ -430,7 +417,6 @@ def export_training(record_id):
         WHERE ta.training_id = ?
     ''', (record_id,)).fetchall()
 
-    # Get format fields
     format_data = conn.execute(
         'SELECT field_names FROM training_formats WHERE department_id = ? ORDER BY created_at DESC LIMIT 1',
         (training['department_id'],)
@@ -440,12 +426,10 @@ def export_training(record_id):
     field_names = json.loads(format_data['field_names']) if format_data else []
     training_data = json.loads(training['training_data'])
 
-    # Create Excel file
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet('Training Program')
 
-    # Formats
     header_format = workbook.add_format({
         'bold': True,
         'bg_color': '#4472C4',
@@ -456,13 +440,11 @@ def export_training(record_id):
     regular_format = workbook.add_format({'border': 1})
     date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm', 'border': 1})
 
-    # Write training info
     worksheet.write(0, 0, 'Training Name:', bold_format)
     worksheet.write(0, 1, training['training_name'], regular_format)
     worksheet.write(1, 0, 'Created At:', bold_format)
     worksheet.write(1, 1, training['created_at'], date_format)
 
-    # Write training fields
     row = 3
     for field in field_names:
         if field != 'training_name':
@@ -470,14 +452,12 @@ def export_training(record_id):
             worksheet.write(row, 1, training_data.get(field, 'N/A'), regular_format)
             row += 1
 
-    # Write assigned employees header
     row += 1
     worksheet.write(row, 0, 'Assigned Employees', header_format)
     worksheet.write(row, 1, 'Employee ID', header_format)
     worksheet.write(row, 2, 'Designation', header_format)
     row += 1
 
-    # Write assigned employees
     for emp in employees:
         worksheet.write(row, 0, emp['name'], regular_format)
         worksheet.write(row, 1, emp['employee_id'], regular_format)
@@ -499,7 +479,6 @@ def export_by_period():
     month = request.args.get('month')
     year = request.args.get('year')
 
-    # Get department ID
     conn = get_db_connection()
     dept = conn.execute(
         'SELECT id FROM departments WHERE name = ?',
@@ -513,7 +492,6 @@ def export_by_period():
 
     department_id = dept['id']
 
-    # Build query filters
     query_params = [department_id]
     date_filter = ""
 
@@ -524,7 +502,6 @@ def export_by_period():
         date_filter += " AND strftime('%Y', tp.created_at) = ?"
         query_params.append(year)
 
-    # Get training programs with assigned employees
     trainings = conn.execute(f'''
         SELECT tp.*, GROUP_CONCAT(e.name, ', ') as assigned_employees
         FROM training_programs tp
@@ -535,7 +512,6 @@ def export_by_period():
         ORDER BY tp.created_at DESC
     ''', query_params).fetchall()
 
-    # Get format fields
     format_data = conn.execute(
         'SELECT field_names FROM training_formats WHERE department_id = ? ORDER BY created_at DESC LIMIT 1',
         (department_id,)
@@ -544,12 +520,10 @@ def export_by_period():
 
     field_names = json.loads(format_data['field_names']) if format_data else []
 
-    # Create Excel file
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet('Training Programs')
 
-    # Formats
     header_format = workbook.add_format({
         'bold': True,
         'bg_color': '#4472C4',
@@ -559,36 +533,29 @@ def export_by_period():
     date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm', 'border': 1})
     regular_format = workbook.add_format({'border': 1})
 
-    # Write headers
     headers = ['Training Name', 'Created At'] + [f.replace('_', ' ').title() for f in field_names if
                                                  f != 'training_name'] + ['Assigned Employees']
     for col, header in enumerate(headers):
         worksheet.write(0, col, header, header_format)
 
-    # Write data
     for row, training in enumerate(trainings, start=1):
         training_data = json.loads(training['training_data'])
 
-        # Training name
         worksheet.write(row, 0, training['training_name'], regular_format)
 
-        # Created at
         worksheet.write(row, 1, training['created_at'], date_format)
 
-        # Other fields
         col = 2
         for field in field_names:
             if field != 'training_name':
                 worksheet.write(row, col, training_data.get(field, 'N/A'), regular_format)
                 col += 1
 
-        # Assigned employees
         worksheet.write(row, col, training['assigned_employees'], regular_format)
 
     workbook.close()
     output.seek(0)
 
-    # Create response
     filename = f"training_programs_{department}"
     if year:
         filename += f"_{year}"
@@ -632,7 +599,6 @@ def export_all():
         date_filter += " AND strftime('%Y', tp.created_at) = ?"
         query_params.append(year)
 
-    # Modify your query to include date filters
     trainings = conn.execute(f'''
         SELECT tp.*, GROUP_CONCAT(e.name, ', ') as assigned_employees
         FROM training_programs tp
@@ -643,7 +609,6 @@ def export_all():
         ORDER BY tp.created_at DESC
     ''', query_params).fetchall()
 
-    # Get format fields
     format_data = conn.execute(
         'SELECT field_names FROM training_formats WHERE department_id = ? ORDER BY created_at DESC LIMIT 1',
         (department_id,)
@@ -652,12 +617,10 @@ def export_all():
 
     field_names = json.loads(format_data['field_names']) if format_data else []
 
-    # Create Excel file
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet('Training Programs')
 
-    # Formats
     header_format = workbook.add_format({
         'bold': True,
         'bg_color': '#4472C4',
@@ -667,7 +630,6 @@ def export_all():
     date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm', 'border': 1})
     regular_format = workbook.add_format({'border': 1})
 
-    # Write headers
     headers = ['Training Name', 'Created At'] + [f.replace('_', ' ').title() for f in field_names if
                                                  f != 'training_name'] + ['Assigned Employees']
     for col, header in enumerate(headers):
@@ -677,26 +639,21 @@ def export_all():
     for row, training in enumerate(trainings, start=1):
         training_data = json.loads(training['training_data'])
 
-        # Training name
         worksheet.write(row, 0, training['training_name'], regular_format)
 
-        # Created at
         worksheet.write(row, 1, training['created_at'], date_format)
 
-        # Other fields
         col = 2
         for field in field_names:
             if field != 'training_name':
                 worksheet.write(row, col, training_data.get(field, 'N/A'), regular_format)
                 col += 1
 
-        # Assigned employees
         worksheet.write(row, col, training['assigned_employees'], regular_format)
 
     workbook.close()
     output.seek(0)
 
-    # Create response
     filename = f"all_training_programs_{department}.xlsx"
 
     response = make_response(output.getvalue())
@@ -719,7 +676,6 @@ def dept_att():
 
     conn = get_db_connection()
 
-    # Get department ID
     dept = conn.execute(
         'SELECT id FROM departments WHERE name = ?',
         (department,)
@@ -731,13 +687,11 @@ def dept_att():
 
     department_id = dept['id']
 
-    # Get training programs for the department
     trainings = conn.execute(
         'SELECT * FROM training_programs WHERE department_id = ?',
         (department_id,)
     ).fetchall()
 
-    # Get attendance records with employee details
     attendance_records = conn.execute('''
         SELECT ar.id as record_id, ar.session_date, tp.training_name, 
                GROUP_CONCAT(e.name, ', ') as participants
@@ -750,7 +704,6 @@ def dept_att():
         ORDER BY ar.session_date DESC
     ''', (department_id,)).fetchall()
 
-    # Get all employees for the department
     employees = conn.execute(
         'SELECT * FROM employees WHERE department_id = ?',
         (department_id,)
@@ -816,7 +769,6 @@ def view_employees():
         return redirect(url_for('logout'))
 
     conn = get_db_connection()
-    # Get department ID first
     dept = conn.execute(
         'SELECT id FROM departments WHERE name = ?',
         (department,)
@@ -827,7 +779,6 @@ def view_employees():
         flash('Department not found', 'error')
         return redirect(url_for('dashboard'))
 
-    # Get employees for this department
     employees = conn.execute(
         'SELECT * FROM employees WHERE department_id = ?',
         (dept['id'],)
@@ -897,7 +848,6 @@ def mark_attendance():
     conn = get_db_connection()
 
     try:
-        # Verify training exists in department
         training = conn.execute(
             'SELECT id FROM training_programs WHERE id = ? AND department_id = ?',
             (training_id, department_id)
@@ -907,7 +857,6 @@ def mark_attendance():
             flash('Training record not found', 'error')
             return redirect(url_for('attendance'))
 
-        # Create attendance record
         cursor = conn.execute(
             'INSERT INTO attendance_records (training_id, session_date, conducted_by) '
             'VALUES (?, ?, ?)',
@@ -915,7 +864,6 @@ def mark_attendance():
         )
         attendance_id = cursor.lastrowid
 
-        # Mark attendance for each employee
         for emp_id in present_employee_ids:
             conn.execute(
                 'INSERT INTO attendance_details (attendance_id, employee_id) '
@@ -943,19 +891,16 @@ def attendance():
 
     conn = get_db_connection()
 
-    # Get employees for department
     employees = conn.execute(
         'SELECT * FROM employees WHERE department_id = ?',
         (department_id,)
     ).fetchall()
 
-    # Get training programs
     trainings = conn.execute(
         'SELECT * FROM training_programs WHERE department_id = ?',
         (department_id,)
     ).fetchall()
 
-    # Get attendance records with participant names
     attendance_records = conn.execute('''
         SELECT ar.id as record_id, ar.session_date, tp.training_name, 
                GROUP_CONCAT(e.name, ', ') as participants
@@ -984,7 +929,7 @@ def export_attendance_period():
     month = request.args.get('month')
     year = request.args.get('year')
 
-    # Get department ID
+
     conn = get_db_connection()
     dept = conn.execute(
         'SELECT id FROM departments WHERE name = ?',
@@ -998,7 +943,7 @@ def export_attendance_period():
 
     department_id = dept['id']
 
-    # Build query filters
+
     query_params = [department_id]
     date_filter = ""
 
@@ -1009,7 +954,7 @@ def export_attendance_period():
         date_filter += " AND strftime('%Y', ar.session_date) = ?"
         query_params.append(year)
 
-    # Get attendance records with participants
+
     records = conn.execute(f'''
         SELECT ar.id, ar.session_date, tp.training_name, 
                GROUP_CONCAT(e.name, ', ') as participants,
@@ -1025,12 +970,12 @@ def export_attendance_period():
     ''', query_params).fetchall()
     conn.close()
 
-    # Create Excel file
+
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet('Attendance Records')
 
-    # Formats
+
     header_format = workbook.add_format({
         'bold': True,
         'bg_color': '#4472C4',
@@ -1040,12 +985,12 @@ def export_attendance_period():
     date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm', 'border': 1})
     regular_format = workbook.add_format({'border': 1})
 
-    # Write headers
+
     headers = ['Training Name', 'Session Date', 'Participants', 'Employee IDs', 'Designations']
     for col, header in enumerate(headers):
         worksheet.write(0, col, header, header_format)
 
-    # Write data
+
     for row, record in enumerate(records, start=1):
         worksheet.write(row, 0, record['training_name'], regular_format)
         worksheet.write(row, 1, record['session_date'], date_format)
@@ -1056,7 +1001,7 @@ def export_attendance_period():
     workbook.close()
     output.seek(0)
 
-    # Create response
+
     filename = f"attendance_records_{department}"
     if year:
         filename += f"_{year}"
@@ -1076,7 +1021,7 @@ def export_all_attendance():
     month = request.args.get('month')
     year = request.args.get('year')
 
-    # Get department ID
+
     conn = get_db_connection()
     dept = conn.execute(
         'SELECT id FROM departments WHERE name = ?',
@@ -1090,7 +1035,7 @@ def export_all_attendance():
 
     department_id = dept['id']
 
-    # Build query filters
+
     query_params = [department_id]
     date_filter = ""
 
@@ -1101,7 +1046,7 @@ def export_all_attendance():
         date_filter += " AND strftime('%Y', ar.session_date) = ?"
         query_params.append(year)
 
-    # Get all attendance records
+
     records = conn.execute(f'''
         SELECT ar.id, ar.session_date, tp.training_name, 
                GROUP_CONCAT(e.name, ', ') as participants,
@@ -1117,12 +1062,12 @@ def export_all_attendance():
     ''', query_params).fetchall()
     conn.close()
 
-    # Create Excel file
+
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet('Attendance Records')
 
-    # Formats
+
     header_format = workbook.add_format({
         'bold': True,
         'bg_color': '#4472C4',
@@ -1132,12 +1077,12 @@ def export_all_attendance():
     date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm', 'border': 1})
     regular_format = workbook.add_format({'border': 1})
 
-    # Write headers
+
     headers = ['Training Name', 'Session Date', 'Participants', 'Employee IDs', 'Designations']
     for col, header in enumerate(headers):
         worksheet.write(0, col, header, header_format)
 
-    # Write data
+
     for row, record in enumerate(records, start=1):
         worksheet.write(row, 0, record['training_name'], regular_format)
         worksheet.write(row, 1, record['session_date'], date_format)
@@ -1148,7 +1093,7 @@ def export_all_attendance():
     workbook.close()
     output.seek(0)
 
-    # Create response
+
     filename = f"all_attendance_records_{department}.xlsx"
 
     response = make_response(output.getvalue())
@@ -1165,7 +1110,7 @@ def export_attendance_record(record_id):
 
     conn = get_db_connection()
 
-    # Get the attendance record
+
     record = conn.execute('''
         SELECT ar.*, tp.training_name, d.name as department
         FROM attendance_records ar
@@ -1179,7 +1124,7 @@ def export_attendance_record(record_id):
         flash('Record not found')
         return redirect(url_for('attendance'))
 
-    # Get participants for this record
+
     participants = conn.execute('''
         SELECT e.id, e.name, e.designation, e.employee_id
         FROM attendance_details ad
@@ -1188,12 +1133,12 @@ def export_attendance_record(record_id):
     ''', (record_id,)).fetchall()
     conn.close()
 
-    # Create Excel file
+
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet('Attendance Record')
 
-    # Formats
+
     header_format = workbook.add_format({
         'bold': True,
         'bg_color': '#4472C4',
@@ -1204,7 +1149,7 @@ def export_attendance_record(record_id):
     regular_format = workbook.add_format({'border': 1})
     bold_format = workbook.add_format({'bold': True, 'border': 1})
 
-    # Write record info
+
     worksheet.write(0, 0, 'Training Name:', bold_format)
     worksheet.write(0, 1, record['training_name'], regular_format)
     worksheet.write(1, 0, 'Session Date:', bold_format)
@@ -1212,12 +1157,12 @@ def export_attendance_record(record_id):
     worksheet.write(2, 0, 'Department:', bold_format)
     worksheet.write(2, 1, record['department'], regular_format)
 
-    # Write participants header
+
     worksheet.write(4, 0, 'Participants', header_format)
     worksheet.write(4, 1, 'Employee ID', header_format)
     worksheet.write(4, 2, 'Designation', header_format)
 
-    # Write participants data
+
     for row, participant in enumerate(participants, start=5):
         worksheet.write(row, 0, participant['name'], regular_format)
         worksheet.write(row, 1, participant['employee_id'], regular_format)
@@ -1243,7 +1188,7 @@ def department_report():
 
     conn = get_db_connection()
 
-    # Get department stats
+
     stats = {
         'total_trainings': conn.execute(
             'SELECT COUNT(*) FROM training_programs WHERE department_id = ?',
@@ -1267,7 +1212,6 @@ def department_report():
         ).fetchone()[0]
     }
 
-    # Get recent training programs with assigned employees
     trainings = []
     for training in conn.execute(
         'SELECT * FROM training_programs WHERE department_id = ? ORDER BY created_at DESC LIMIT 5',
@@ -1283,7 +1227,6 @@ def department_report():
         training_dict['assigned_employees'] = [dict(emp) for emp in assigned_employees]
         trainings.append(training_dict)
 
-    # Get recent attendance records with participants
     attendance_records = []
     for record in conn.execute('''
         SELECT ar.id, ar.session_date, tp.training_name
@@ -1335,7 +1278,7 @@ def export_report():
 
     department_id = dept['id']
 
-    # Build query filters
+
     query_params = [department_id]
     date_filter = ""
 
@@ -1346,7 +1289,7 @@ def export_report():
         date_filter += " AND strftime('%Y', tp.created_at) = ?"
         query_params.append(year)
 
-    # Get training data with assigned employees
+
     trainings = []
     for training in conn.execute(
             f'SELECT tp.* FROM training_programs tp '
@@ -1355,7 +1298,6 @@ def export_report():
             query_params
     ).fetchall():
         training_dict = dict(training)
-        # Get assigned employees
         assigned_employees = conn.execute(
             'SELECT e.id, e.name, e.designation FROM training_assignments ta '
             'JOIN employees e ON ta.employee_id = e.id '
@@ -1364,7 +1306,6 @@ def export_report():
         training_dict['assigned_employees'] = [dict(emp) for emp in assigned_employees]
         trainings.append(training_dict)
 
-    # Get attendance data with participants
     attendance_records = []
     for record in conn.execute(
             f'SELECT ar.*, tp.training_name FROM attendance_records ar '
@@ -1385,11 +1326,11 @@ def export_report():
 
     conn.close()
 
-    # Create Excel file with organized structure
+
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
 
-    # Format for headers
+
     header_format = workbook.add_format({
         'bold': True,
         'align': 'center',
@@ -1399,52 +1340,52 @@ def export_report():
         'border': 1
     })
 
-    # Format for data cells
+
     data_format = workbook.add_format({
         'border': 1,
         'align': 'left',
         'valign': 'vcenter'
     })
 
-    # Format for dates
+
     date_format = workbook.add_format({
         'num_format': 'yyyy-mm-dd hh:mm',
         'border': 1,
         'align': 'left'
     })
 
-    # 1. Training Programs Sheet
+
     training_sheet = workbook.add_worksheet('Training Programs')
 
-    # Set column widths
-    training_sheet.set_column('A:A', 30)  # Training Name
-    training_sheet.set_column('B:B', 20)  # Date
-    training_sheet.set_column('C:C', 15)  # Assigned Employees Count
-    training_sheet.set_column('D:D', 15)  # Sessions Count
-    training_sheet.set_column('E:E', 15)  # Participants Count
-    training_sheet.set_column('F:F', 15)  # Attendance Rate
-    training_sheet.set_column('G:G', 40)  # Training Details
 
-    # Write headers
+    training_sheet.set_column('A:A', 30)
+    training_sheet.set_column('B:B', 20)
+    training_sheet.set_column('C:C', 15)
+    training_sheet.set_column('D:D', 15)
+    training_sheet.set_column('E:E', 15)
+    training_sheet.set_column('F:F', 15)
+    training_sheet.set_column('G:G', 40)
+
+
     training_sheet.write_row(0, 0, [
         'Training Name', 'Date Created', 'Assigned Employees',
         'Sessions Held', 'Unique Participants', 'Attendance Rate',
         'Training Details'
     ], header_format)
 
-    # Write training data
+
     for row, training in enumerate(trainings, start=1):
         # Calculate attendance stats
         assigned_count = len(training['assigned_employees'])
 
-        # Get attendance sessions count for this training
+
         conn = get_db_connection()
         session_count = conn.execute(
             'SELECT COUNT(*) FROM attendance_records WHERE training_id = ?',
             (training['id'],)
         ).fetchone()[0]
 
-        # Get unique participants count
+
         participant_count = conn.execute(
             'SELECT COUNT(DISTINCT ad.employee_id) FROM attendance_details ad '
             'JOIN attendance_records ar ON ad.attendance_id = ar.id '
@@ -1469,21 +1410,21 @@ def export_report():
         training_sheet.write(row, 5, attendance_rate, data_format)
         training_sheet.write(row, 6, details, data_format)
 
-    # 2. Assigned Employees Sheet
+
     employees_sheet = workbook.add_worksheet('Assigned Employees')
 
-    # Set column widths
+
     employees_sheet.set_column('A:A', 30)  # Training Name
     employees_sheet.set_column('B:B', 25)  # Employee Name
     employees_sheet.set_column('C:C', 20)  # Designation
     employees_sheet.set_column('D:D', 15)  # Employee ID
 
-    # Write headers
+
     employees_sheet.write_row(0, 0, [
         'Training Name', 'Employee Name', 'Designation', 'Employee ID'
     ], header_format)
 
-    # Write employee assignments
+
     row = 1
     for training in trainings:
         for emp in training['assigned_employees']:
@@ -1493,25 +1434,25 @@ def export_report():
             employees_sheet.write(row, 3, emp['id'], data_format)
             row += 1
 
-    # 3. Attendance Records Sheet
+
     attendance_sheet = workbook.add_worksheet('Attendance Records')
 
-    # Set column widths
+
     attendance_sheet.set_column('A:A', 30)  # Training Name
     attendance_sheet.set_column('B:B', 20)  # Session Date
     attendance_sheet.set_column('C:C', 15)  # Participants
     attendance_sheet.set_column('D:D', 15)  # Attendance Rate
     attendance_sheet.set_column('E:E', 40)  # Participant Names
 
-    # Write headers
+
     attendance_sheet.write_row(0, 0, [
         'Training Name', 'Session Date', 'Participants Count',
         'Attendance Rate', 'Participant Names'
     ], header_format)
 
-    # Write attendance data
+
     for row, record in enumerate(attendance_records, start=1):
-        # Find the corresponding training to get assigned employees count
+
         training = next((t for t in trainings if t['id'] == record['training_id']), None)
         assigned_count = len(training['assigned_employees']) if training else 0
 
@@ -1528,14 +1469,11 @@ def export_report():
         attendance_sheet.write(row, 3, attendance_rate, data_format)
         attendance_sheet.write(row, 4, participant_names, data_format)
 
-    # 4. Summary Sheet
     summary_sheet = workbook.add_worksheet('Summary')
 
-    # Set column widths
     summary_sheet.set_column('A:A', 30)
     summary_sheet.set_column('B:B', 20)
 
-    # Write summary statistics
     summary_sheet.merge_range('A1:B1', f'{department} Department Training Report Summary', header_format)
 
     summary_data = [
@@ -1546,8 +1484,8 @@ def export_report():
         ))],
         ['Total Employees', len(set(
             emp['id'] for t in trainings for emp in t['assigned_employees']
-        ))],  # This should be replaced with actual total employees count
-        ['Overall Attendance Rate', 'Calculated Rate']  # You can calculate this
+        ))],
+        ['Overall Attendance Rate', 'Calculated Rate']
     ]
 
     for row, (label, value) in enumerate(summary_data, start=2):

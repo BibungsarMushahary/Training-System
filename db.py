@@ -6,7 +6,6 @@ def init_db():
     conn = sqlite3.connect('training_management.db')
     cursor = conn.cursor()
 
-    # Create tables
     cursor.executescript("""
     CREATE TABLE IF NOT EXISTS departments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,15 +89,14 @@ def init_db():
     );
     """)
 
-    # Insert initial departments
+
     departments = ['IS', 'CM', 'EL', 'HR', 'F&S', 'HSE', 'Finance']
     for dept in departments:
         try:
             cursor.execute("INSERT INTO departments (name) VALUES (?)", (dept,))
         except sqlite3.IntegrityError:
-            pass  # Department already exists
+            pass
 
-    # Insert initial admin users (replace with your actual credentials)
     admin_users = [
         ('ldadmin', generate_password_hash('ld123'), 'ld_admin', None),
         ('isadmin', generate_password_hash('is123'), 'dept_admin', 1),
@@ -117,7 +115,7 @@ def init_db():
                 (username, pwd_hash, role, dept_id)
             )
         except sqlite3.IntegrityError:
-            pass  # User already exists
+            pass
 
     conn.commit()
     conn.close()
