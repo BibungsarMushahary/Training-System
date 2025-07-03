@@ -5,6 +5,16 @@
     <title>Attendance - {{ department }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='Department/dept_style.css') }}">
     <style>
+        body {
+  margin: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  background-image: url('/static/background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
+}
         .attendance-container {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(8px);

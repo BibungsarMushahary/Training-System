@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  height:100vh;
+  height: 100vh;
   font-family: Arial, sans-serif;
   background-image: url('/static/background.jpg');
   background-size: cover;
